@@ -1,6 +1,7 @@
 package com.expensetracker.expensetracker.controller;
 
 import com.expensetracker.expensetracker.security.UserPrincipal;
+import com.expensetracker.expensetracker.service.BankAccountService;
 import com.expensetracker.expensetracker.service.PlaidService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -14,6 +15,7 @@ import java.util.Map;
 public class PlaidController {
 
     private final PlaidService plaidService;
+    private final BankAccountService bankAccountService;
 
     @PostMapping("/link-token")
     public Map createLinkToken(@AuthenticationPrincipal UserPrincipal principal) {
@@ -21,8 +23,18 @@ public class PlaidController {
     }
 
     @PostMapping("/exchange-token")
-    public Map exchangeToken(@RequestBody Map<String, String> request) {
+    public Map exchangeToken(
+            @RequestBody Map<String, String> request,
+            @AuthenticationPrincipal UserPrincipal principal) {
+
         String publicToken = request.get("public_token");
-        return plaidService.exchangePublicToken(publicToken);
+        Map exchangeResult = plaidService.exchangePublicToken(publicToken);
+        String accessToken = (String) exchangeResult.get("access_token");
+        String itemId = (String) exchangeResult.get("item_id");
+
+        Map accountsResult = plaidService.getAccounts(accessToken);
+        bankAccountService.saveAccounts(principal.getUser(), accessToken, itemId, accountsResult);
+
+        return Map.of("status", "connected");
     }
 }
