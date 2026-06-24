@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -20,25 +20,23 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bank_account_id", nullable = false)
     private BankAccount bankAccount;
 
-    // Plaid's unique id for this transaction - lets us avoid duplicate imports
     @Column(name = "plaid_transaction_id", unique = true)
     private String plaidTransactionId;
 
     @Column(nullable = false)
-    private BigDecimal amount; // positive = money out, negative = money in (Plaid convention)
+    private BigDecimal amount;
 
     @Column(nullable = false)
-    private String name; // merchant/description, e.g. "Tesco"
+    private String name;
 
-    // Plaid's auto-suggested category, e.g. "Groceries"
     @Column(name = "plaid_category")
     private String plaidCategory;
 
-    // User's own override category - null until they edit it
     @Column(name = "user_category")
     private String userCategory;
 
