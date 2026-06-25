@@ -33,21 +33,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // Disable CSRF: irrelevant for stateless JWT APIs (CSRF protects
-            // cookie-based sessions, which we're not using).
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
-                // Signup/login must be reachable without already being logged in
                 .requestMatchers("/api/auth/**").permitAll()
-                // Everything else requires a valid JWT
                 .anyRequest().authenticated()
             )
-            // Stateless: we never store login state in a server-side session.
-            // Every request must prove identity via its own JWT.
             .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authenticationProvider(authenticationProvider())
-            // Run our JWT check before Spring's default username/password filter
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -68,17 +61,17 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        // BCrypt: industry standard for password hashing. Salts automatically,
-        // and is deliberately slow to make brute-forcing expensive.
         return new BCryptPasswordEncoder();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // During local dev, the React app runs on Vite's default port 5173.
-        // Add your deployed Vercel URL here too once you deploy the frontend.
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+        configuration.setAllowedOrigins(List.of(
+            "http://localhost:5173",
+            "http://localhost:5174",
+            "https://expense-tracker-front-end-pi.vercel.app"
+        ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
